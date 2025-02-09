@@ -43,16 +43,16 @@ Dependencies
 Installation & Setup
 
 1.	Clone Repo:
-2.	git clone https://github.com/[username]/smart-waste-management
-3.	cd smart-waste-management
-4.	Install Dependencies:
-5.	npm install
-6.	Configure Hardware:
+2.	cd smart-waste-management
+3.	Install Dependencies:
+4.	npm install
+5.	Configure Hardware:
 o	Update WiFi and server URL in sensor.cpp
 o	Flash the ESP32 using Arduino IDE
-7.	Start Server:
-8.	npm start
-9.	Access:
+
+6.	Start Server:
+7.	npm start
+8.	Access:
 o	Admin: http://localhost:3000/adminportal.html
 o	Classification: http://localhost:3000/classification.html
 o	Location: http://localhost:3000/locate.html
