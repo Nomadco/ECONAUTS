@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locate Waste Bins</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <style>
+        #map { 
+            height: 400px; 
+            width: 100%; 
+            border-radius: 10px; 
+            margin-top: 10px;
+            z-index: 1; /* Ensure proper stacking */
+        }
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <header class="bg-blue-600 text-white py-4 text-center">
+        <h1 class="text-2xl font-bold">Find Nearby Waste Bins</h1>
+        <p>Enter your pincode to locate bins in your area</p>
+    </header>
+
+    <main class="container mx-auto py-8 px-4">
+        <div class="bg-white p-6 rounded-lg shadow-md text-center border-2 border-blue-600 max-w-md mx-auto">
+            <div class="text-blue-600 text-4xl mb-4">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <h2 class="text-xl font-bold mb-2">Locate Bins</h2>
+            <p class="mb-4">Find nearby bins and collection schedules</p>
+            <input type="text" 
+                   id="pincode" 
+                   placeholder="Enter Pincode" 
+                   pattern="[0-9]{6}"
+                   maxlength="6"
+                   class="border p-2 rounded mb-4 w-full"
+                   title="Please enter a valid 6-digit pincode">
+            <button id="findLocation" class="bg-blue-600 text-white px-4 py-2 rounded w-full hover:bg-blue-700 transition-colors">
+                Find Locations
+            </button>
+        </div>
+
+        <!-- Map Container -->
+        <div class="relative mt-6">
+            <div id="map"></div>
+            <div class="loading">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-4 text-center mt-8">
+        <p>Emergency Contact: 1800-XXX-XXXX</p>
+        <p>© 2024 Chennai Municipal Corporation</p>
+    </footer>
+
+    <script>
+        let map;
+        let binMarkers = [];
+        let binData = {};
+        
+        // Initialize map with error handling
+        try {
+            map = L.map('map').setView([13.0827, 80.2707], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+        } catch (error) {
+            console.error("Error initializing map:", error);
+            alert("Error loading map. Please refresh the page.");
+        }
+
+        // Load bin locations with error handling
+        async function loadBins() {
+            const loading = document.querySelector('.loading');
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch('bins.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                binData = await response.json();
+            } catch (error) {
+                console.error("Error loading bin locations:", error);
+                alert("Error loading bin locations. Please try again later.");
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Load bins on page load
+        loadBins();
+
+        function clearMarkers() {
+            binMarkers.forEach(marker => map.removeLayer(marker));
+            binMarkers = [];
+        }
+
+        // Input validation
+        const pincodeInput = document.getElementById("pincode");
+        pincodeInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+        });
+
+        // Find locations with error handling
+        document.getElementById("findLocation").addEventListener("click", function() {
+            let pincode = pincodeInput.value.trim();
+            
+            if (pincode.length !== 6) {
+                alert("Please enter a valid 6-digit pincode");
+                return;
+            }
+
+            clearMarkers();
+
+            if (binData[pincode]) {
+                let bins = binData[pincode];
+                let bounds = L.latLngBounds();
+
+                bins.forEach(bin => {
+                    let marker = L.marker([bin.lat, bin.lng])
+                        .addTo(map)
+                        .bindPopup(`
+                            <div class="text-center">
+                                <strong>Waste Bin Location</strong><br>
+                                Pincode: ${pincode}<br>
+                                Latitude: ${bin.lat}<br>
+                                Longitude: ${bin.lng}
+                            </div>
+                        `);
+                    binMarkers.push(marker);
+                    bounds.extend(marker.getLatLng());
+                });
+
+                map.fitBounds(bounds, { padding: [50, 50] });
+            } else {
+                alert("No bins found for this pincode. Please try another one.");
+            }
+        });
+
+        // Add keyboard support
+        pincodeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById("findLocation").click();
+            }
+        });
+    </script>
+</body>
+</html>

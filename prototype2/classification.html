@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waste Classification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <header class="bg-gray-800 text-white py-4">
+        <div class="container mx-auto text-center">
+            <h1 class="text-2xl font-semibold">Waste Classification</h1>
+            <p>Upload an image to identify waste type and get disposal guidelines</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto py-8">
+        <div class="bg-white shadow-md rounded-lg p-6 mb-8 text-center">
+            <div id="imagePreview" class="mb-4">
+                <div class="text-6xl text-gray-400">
+                    <i class="fas fa-camera"></i>
+                </div>
+            </div>
+            <div id="loadingIndicator" class="hidden mb-4">
+                <div class="text-gray-600">Processing image...</div>
+            </div>
+            <div id="errorMessage" class="hidden mb-4 text-red-500"></div>
+            <div id="predictionResult" class="hidden mb-4">
+                <h3 class="text-lg font-semibold">Prediction Result:</h3>
+                <p id="predictedClass" class="text-gray-700"></p>
+                <p id="confidence" class="text-sm text-gray-500"></p>
+            </div>
+            <form id="uploadForm">
+                <label class="bg-gray-800 text-white px-4 py-2 rounded cursor-pointer hover:bg-gray-700">
+                    Upload Image
+                    <input type="file" id="fileInput" class="hidden" accept="image/*">
+                </label>
+            </form>
+        </div>
+
+        <div id="organicCard" class="bg-green-100 border border-green-300 rounded-lg p-6 mb-8">
+            <div class="flex items-center mb-4">
+                <div class="text-3xl text-green-500 mr-2">
+                    <i class="fas fa-leaf"></i>
+                </div>
+                <h2 class="text-xl font-semibold">Organic Waste</h2>
+            </div>
+            <ul class="list-disc list-inside">
+                <li>Separate wet and dry waste</li>
+                <li>Use designated green bins</li>
+                <li>Consider home composting</li>
+                <li>Avoid mixing with non-biodegradable items</li>
+            </ul>
+        </div>
+
+        <div id="recyclableCard" class="bg-blue-100 border border-blue-300 rounded-lg p-6 mb-8">
+            <div class="flex items-center mb-4">
+                <div class="text-3xl text-blue-500 mr-2">
+                    <i class="fas fa-recycle"></i>
+                </div>
+                <h2 class="text-xl font-semibold">Recyclable Waste</h2>
+            </div>
+            <ul class="list-disc list-inside">
+                <li>Clean and dry before disposal</li>
+                <li>Use blue bins for recyclables</li>
+                <li>Flatten boxes and containers</li>
+                <li>Remove non-recyclable parts</li>
+            </ul>
+        </div>
+
+        <div id="hazardousCard" class="bg-red-100 border border-red-300 rounded-lg p-6 mb-8">
+            <div class="flex items-center mb-4">
+                <div class="text-3xl text-red-500 mr-2">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h2 class="text-xl font-semibold">Hazardous Waste</h2>
+            </div>
+            <ul class="list-disc list-inside">
+                <li>Never mix with regular waste</li>
+                <li>Use specialized disposal centers</li>
+                <li>Keep in original containers</li>
+                <li>Contact authorities for collection</li>
+            </ul>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-4">
+        <div class="container mx-auto text-center">
+            <p>Need help identifying waste?</p>
+            <p>Our team is here to assist you</p>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById("uploadForm").addEventListener("submit", async function (event) {
+            event.preventDefault();
+        });
+
+        document.getElementById("fileInput").addEventListener("change", async function () {
+            const loadingIndicator = document.getElementById("loadingIndicator");
+            const errorMessage = document.getElementById("errorMessage");
+            const predictionResult = document.getElementById("predictionResult");
+            const predictedClass = document.getElementById("predictedClass");
+            const confidence = document.getElementById("confidence");
+
+            // Hide previous results and errors
+            errorMessage.classList.add("hidden");
+            predictionResult.classList.add("hidden");
+
+            let formData = new FormData();
+            let fileInput = document.getElementById("fileInput");
+
+            if (!fileInput.files.length) {
+                errorMessage.textContent = "Please select an image first.";
+                errorMessage.classList.remove("hidden");
+                return;
+            }
+
+            // Show loading indicator
+            loadingIndicator.classList.remove("hidden");
+
+            formData.append("file", fileInput.files[0]);
+
+            try {
+                let response = await fetch("http://127.0.0.1:5000/predict", {
+                    method: "POST",
+                    body: formData
+                });
+
+                let text = await response.text();
+                console.log("Raw response:", text);
+                let result = JSON.parse(text);
+
+                if (response.ok) {
+                    // Update prediction result
+                    predictedClass.textContent = `Type: ${result.class}`;
+                    confidence.textContent = `Confidence: ${(result.confidence * 100).toFixed(2)}%`;
+                    predictionResult.classList.remove("hidden");
+                } else {
+                    errorMessage.textContent = `Error: ${result.error}`;
+                    errorMessage.classList.remove("hidden");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                errorMessage.textContent = "Error connecting to server.";
+                errorMessage.classList.remove("hidden");
+            } finally {
+                // Hide loading indicator
+                loadingIndicator.classList.add("hidden");
+            }
+        });
+    </script>
+</body>
+</html>
